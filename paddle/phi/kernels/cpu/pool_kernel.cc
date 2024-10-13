@@ -20,6 +20,7 @@
 PD_REGISTER_KERNEL(pool2d, CPU, ALL_LAYOUT, phi::Pool2dKernel, float, double) {}
 PD_REGISTER_KERNEL(
     lp_pool2d, CPU, ALL_LAYOUT, phi::LPPool2dKernel, float, double) {}
+PD_REGISTER_KERNEL(maxpool2d, CPU, ALL_LAYOUT, phi::MaxPool2dKernel, float, double) {}
 PD_REGISTER_KERNEL(max_pool2d_with_index,
                    CPU,
                    ALL_LAYOUT,
@@ -30,6 +31,7 @@ PD_REGISTER_KERNEL(max_pool2d_with_index,
 }
 
 PD_REGISTER_KERNEL(pool3d, CPU, ALL_LAYOUT, phi::Pool3dKernel, float, double) {}
+PD_REGISTER_KERNEL(maxpool3d, CPU, ALL_LAYOUT, phi::MaxPool3dKernel, float, double) {}
 PD_REGISTER_KERNEL(max_pool3d_with_index,
                    CPU,
                    ALL_LAYOUT,

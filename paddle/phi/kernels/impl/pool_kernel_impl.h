@@ -217,6 +217,7 @@ void MaxPoolWithIndexRawKernel(const Context& ctx,
                                const std::vector<int>& kernel_size,
                                const std::vector<int>& strides,
                                const std::vector<int>& paddings,
+                               const std::vector<int>& dilations,
                                bool global_pooling,
                                bool adaptive,
                                DenseTensor* out,
@@ -235,12 +236,12 @@ void MaxPoolWithIndexRawKernel(const Context& ctx,
     case 2: {
       funcs::MaxPool2dWithIndexFunctor<Context, T1, T2> pool2d_forward;
       pool2d_forward(
-          ctx, x, kernel_size_, strides, paddings_, adaptive, out, mask);
+          ctx, x, kernel_size_, strides, paddings_, dilations, adaptive, out, mask);
     } break;
     case 3: {
       funcs::MaxPool3dWithIndexFunctor<Context, T1, T2> pool3d_forward;
       pool3d_forward(
-          ctx, x, kernel_size_, strides, paddings_, adaptive, out, mask);
+          ctx, x, kernel_size_, strides, paddings_, dilations, adaptive, out, mask);
     } break;
     default: {
       PADDLE_THROW(
@@ -249,6 +250,85 @@ void MaxPoolWithIndexRawKernel(const Context& ctx,
   }
 }
 
+template <typename T, typename Context>
+void MaxPoolRawKernel(const Context& ctx,
+                   const DenseTensor& x,
+                   const std::vector<int>& kernel_size,
+                   const std::vector<int>& strides,
+                   const std::vector<int>& paddings,
+                   const std::vector<int>& dilations,
+                   bool exclusive,
+                   const std::string& data_format,
+                   const std::string& pooling_type,
+                   bool global_pooling,
+                   bool adaptive,
+                   const std::string& padding_algorithm,
+                   const float norm_type,
+                   DenseTensor* out) {
+  std::vector<int> paddings_ = paddings;
+  std::vector<int> kernel_size_ = kernel_size;
+
+  // update paddings
+  auto x_dims = x.dims();
+  DDim data_dims;
+  
+    data_dims = slice_ddim(x_dims, 2, x_dims.size());
+  
+
+
+  funcs::UpdatePadding(&paddings_,
+                       global_pooling,
+                       adaptive,
+                       padding_algorithm,
+                       data_dims,
+                       strides,
+                       kernel_size_);
+
+  if (data_dims.size() * 2 == static_cast<int>(paddings_.size())) {
+    for (int i = 0; i < data_dims.size(); ++i) {
+      paddings_.erase(paddings_.begin() + i + 1);
+    }
+  }
+
+  if (global_pooling) {
+    funcs::UpdateKernelSize(&kernel_size_, data_dims);
+  }
+
+  switch (kernel_size_.size()) {
+    case 2: {
+        funcs::MaxPool2dFunctor<Context, T> maxpool2d_forward;
+        maxpool2d_forward(ctx,
+                       x,
+                       kernel_size_,
+                       strides,
+                       paddings_,
+                       dilations,
+                       true,
+                       false,
+                       out);
+    } break;
+    case 3: {
+      
+        funcs::Pool3dFunctor<Context, funcs::MaxPool<T>, T> pool3d_forward;
+        funcs::MaxPool<T> pool_process;
+        pool3d_forward(ctx,
+                       x,
+                       kernel_size_,
+                       strides,
+                       paddings_,
+                       data_format,
+                       true,
+                       false,
+                       out,
+                       pool_process);
+                       
+    } break;
+    default: {
+      PADDLE_THROW(
+          errors::InvalidArgument("MaxPool op only supports 2D and 3D input."));
+    }
+    }
+}
 template <typename T, typename Context>
 void Pool2dKernel(const Context& ctx,
                   const DenseTensor& x,
@@ -270,6 +350,39 @@ void Pool2dKernel(const Context& ctx,
                             kernel_size_val,
                             strides,
                             paddings,
+                            exclusive,
+                            data_format,
+                            pooling_type,
+                            global_pooling,
+                            adaptive,
+                            padding_algorithm,
+                            0,
+                            out);
+}
+
+template <typename T, typename Context>
+void MaxPool2dKernel(const Context& ctx,
+                  const DenseTensor& x,
+                  const IntArray& kernel_size,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  bool ceil_mode UNUSED,
+                  bool exclusive,
+                  const std::string& data_format,
+                  const std::string& pooling_type,
+                  bool global_pooling,
+                  bool adaptive,
+                  const std::string& padding_algorithm,
+                  DenseTensor* out) {
+  std::vector<int> kernel_size_val(kernel_size.GetData().begin(),
+                                   kernel_size.GetData().end());
+  MaxPoolRawKernel<T, Context>(ctx,
+                            x,
+                            kernel_size_val,
+                            strides,
+                            paddings,
+                            dilations,
                             exclusive,
                             data_format,
                             pooling_type,
@@ -318,6 +431,7 @@ void MaxPool2dWithIndexKernel(const Context& ctx,
                               const std::vector<int>& kernel_size,
                               const std::vector<int>& strides,
                               const std::vector<int>& paddings,
+                              const std::vector<int>& dilations,
                               bool global_pooling,
                               bool adaptive,
                               DenseTensor* out,
@@ -327,6 +441,7 @@ void MaxPool2dWithIndexKernel(const Context& ctx,
                                         kernel_size,
                                         strides,
                                         paddings,
+                                        dilations,
                                         global_pooling,
                                         adaptive,
                                         out,
@@ -363,11 +478,45 @@ void Pool3dKernel(const Context& ctx,
 }
 
 template <typename T, typename Context>
+void MaxPool3dKernel(const Context& ctx,
+                  const DenseTensor& x,
+                  const IntArray& kernel_size,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  bool ceil_mode UNUSED,
+                  bool exclusive,
+                  const std::string& data_format,
+                  const std::string& pooling_type,
+                  bool global_pooling,
+                  bool adaptive,
+                  const std::string& padding_algorithm,
+                  DenseTensor* out) {
+  std::vector<int> kernel_size_val(kernel_size.GetData().begin(),
+                                   kernel_size.GetData().end());
+  MaxPoolRawKernel<T, Context>(ctx,
+                            x,
+                            kernel_size_val,
+                            strides,
+                            paddings,
+                            dilations,
+                            exclusive,
+                            data_format,
+                            pooling_type,
+                            global_pooling,
+                            adaptive,
+                            padding_algorithm,
+                            0,
+                            out);
+}
+
+template <typename T, typename Context>
 void MaxPool3dWithIndexKernel(const Context& ctx,
                               const DenseTensor& x,
                               const std::vector<int>& kernel_size,
                               const std::vector<int>& strides,
                               const std::vector<int>& paddings,
+                              const std::vector<int>& dilations,
                               bool global_pooling,
                               bool adaptive,
                               DenseTensor* out,
@@ -377,6 +526,7 @@ void MaxPool3dWithIndexKernel(const Context& ctx,
                                         kernel_size,
                                         strides,
                                         paddings,
+                                        dilations,
                                         global_pooling,
                                         adaptive,
                                         out,

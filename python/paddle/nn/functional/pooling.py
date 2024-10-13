@@ -566,6 +566,7 @@ def max_pool1d(
     kernel_size,
     stride=None,
     padding=0,
+    dilation=None,
     return_mask=False,
     ceil_mode=False,
     name=None,
@@ -623,7 +624,11 @@ def max_pool1d(
         stride = kernel_size
     else:
         stride = [1] + convert_to_list(stride, 1, 'pool_stride')
-
+    if dilation is None:
+        dilation = [1, 1]
+    else:
+        dilation = [1] + convert_to_list(dilation, 1, 'pool_stride')
+    print(dilation)
     padding, padding_algorithm = _update_padding_nd(
         padding, 1, ceil_mode=ceil_mode
     )
@@ -634,7 +639,7 @@ def max_pool1d(
     if in_dynamic_or_pir_mode():
         if return_mask:
             pool_out = _C_ops.max_pool2d_with_index(
-                x, kernel_size, stride, padding, False, False
+                x, kernel_size, stride, padding, dilation, False, False
             )
             return (
                 (squeeze(pool_out[0], [2]), squeeze(pool_out[1], [2]))
@@ -642,11 +647,12 @@ def max_pool1d(
                 else squeeze(pool_out[0], [2])
             )
         else:
-            pool_out = _C_ops.pool2d(
+            pool_out = _C_ops.maxpool2d(
                 x,
                 kernel_size,
                 stride,
                 padding,
+                dilation,
                 ceil_mode,
                 True,
                 data_format,
@@ -1120,6 +1126,7 @@ def max_pool2d(
     kernel_size,
     stride=None,
     padding=0,
+    dilation=None,
     return_mask=False,
     ceil_mode=False,
     data_format="NCHW",
@@ -1183,6 +1190,10 @@ def max_pool2d(
         stride = kernel_size
     else:
         stride = convert_to_list(stride, 2, 'pool_stride')
+    if dilation is None:
+        dilation = [1, 1]
+    else:
+        dilation = convert_to_list(dilation, 2, 'dilation')
 
     if data_format not in ["NCHW", "NHWC"]:
         raise ValueError(
@@ -1204,7 +1215,7 @@ def max_pool2d(
     if in_dynamic_or_pir_mode():
         if return_mask:
             output = _C_ops.max_pool2d_with_index(
-                x, kernel_size, stride, padding, False, False
+                x, kernel_size, stride, padding, dilation, False, False
             )
             return output if return_mask else output[0]
         else:
@@ -1282,6 +1293,7 @@ def max_pool3d(
     kernel_size,
     stride=None,
     padding=0,
+    dilation=None,
     return_mask=False,
     ceil_mode=False,
     data_format="NCDHW",
@@ -1354,6 +1366,11 @@ def max_pool3d(
         stride = kernel_size
     else:
         stride = convert_to_list(stride, 3, 'pool_stride')
+    
+    if dilation is None:
+        dilation = [1, 1, 1]
+    else:
+        dilation = convert_to_list(dilation, 3, 'dilation')
 
     channel_last = _channel_last(data_format, 3)
 
@@ -1369,7 +1386,7 @@ def max_pool3d(
     if in_dynamic_or_pir_mode():
         if return_mask:
             output = _C_ops.max_pool3d_with_index(
-                x, kernel_size, stride, padding, False, False
+                x, kernel_size, stride, padding, dilation, False, False
             )
             return output if return_mask else output[0]
         else:

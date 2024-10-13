@@ -504,6 +504,74 @@ class Pool2dGradFunctor<CPUContext, PoolProcess, T> {
  * Paddings are four elements. These four elements represent height_up,
  * height_down, width_left and width_right, respectively.
  */
+template <typename T>
+class MaxPool2dFunctor<CPUContext, T> {
+ public:
+  void operator()(const CPUContext& context,
+                  const DenseTensor& input,
+                  const std::vector<int>& ksize,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  bool exclusive,
+                  bool adaptive,
+                  DenseTensor* output) {
+    funcs::MaxPool<T> pool_process;
+    const int batch_size = static_cast<int>(input.dims()[0]);
+    const int input_height = static_cast<int>(input.dims()[2]);
+    const int input_width = static_cast<int>(input.dims()[3]);
+    const int output_channels = static_cast<int>(output->dims()[1]);
+    const int output_height = static_cast<int>(output->dims()[2]);
+    const int output_width = static_cast<int>(output->dims()[3]);
+    const int ksize_height = ksize[0];
+    const int ksize_width = ksize[1];
+    const int stride_height = strides[0];
+    const int stride_width = strides[1];
+    const int padding_height = paddings[0];
+    const int padding_width = paddings[1];
+    const int dilation_height = dilations[0];
+    const int dilation_width = dilations[1];
+
+    const int input_stride = input_height * input_width;
+    const int output_stride = output_height * output_width;
+
+    const T* input_data = input.data<T>();
+    T* output_data = context.template Alloc<T>(output);
+
+    int hstart = 0, hend = 1;
+    int wstart = 0, wend = 1;
+    for (int i = 0; i < batch_size; i++) {
+      for (int c = 0; c < output_channels; ++c) {
+        for (int ph = 0; ph < output_height; ++ph) {
+          
+          for (int pw = 0; pw < output_width; ++pw) {
+            
+              hstart = ph * stride_height - padding_height;
+              wstart = pw * stride_width - padding_width;
+              
+              hend = std::min(hstart + dilation_height * (ksize_height - 1) + 1, input_height);
+              wend = std::min(wstart + dilation_width * (ksize_width - 1) + 1, input_width);
+
+              wstart = std::max(wstart, 0);
+              hstart = std::max(hstart, 0);
+
+            T ele = pool_process.initial();
+            for (int h = hstart; h < hend; h+=dilation_height) {
+              for (int w = wstart; w < wend; w+=dilation_width) {
+                pool_process.compute(input_data[h * input_width + w], &ele);
+              }
+            }
+            output_data[ph * output_width + pw] = ele;
+          }
+        }
+        input_data += input_stride;
+        output_data += output_stride;
+      }
+    }
+  }
+
+
+};
 template <class T>
 class MaxPool2dGradFunctor<CPUContext, T> {
  public:
@@ -679,6 +747,8 @@ class MaxPool2dGradFunctor<CPUContext, T> {
     }
   }
 };
+template class MaxPool2dFunctor<CPUContext, float>;
+template class MaxPool2dFunctor<CPUContext, double>;
 template class MaxPool2dGradFunctor<CPUContext, float>;
 template class MaxPool2dGradFunctor<CPUContext, double>;
 
@@ -1321,6 +1391,86 @@ class Pool3dGradFunctor<CPUContext, PoolProcess, T> {
   }
 };
 
+template <typename T>
+class MaxPool3dFunctor<CPUContext, T> {
+ public:
+  void operator()(const CPUContext& context,
+                  const DenseTensor& input,
+                  const std::vector<int>& ksize,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  bool exclusive,
+                  bool adaptive,
+                  DenseTensor* output) {
+    funcs::MaxPool<T> pool_process;
+    const int batch_size = static_cast<int>(input.dims()[0]);
+    const int input_height = static_cast<int>(input.dims()[2]);
+    const int input_width = static_cast<int>(input.dims()[3]);
+    const int output_channels = static_cast<int>(output->dims()[1]);
+    const int output_height = static_cast<int>(output->dims()[2]);
+    const int output_width = static_cast<int>(output->dims()[3]);
+    const int ksize_height = ksize[0];
+    const int ksize_width = ksize[1];
+    const int stride_height = strides[0];
+    const int stride_width = strides[1];
+    const int padding_height = paddings[0];
+    const int padding_width = paddings[1];
+    const int dilation_height = dilations[0];
+    const int dilation_width = dilations[1];
+
+    const int input_stride = input_height * input_width;
+    const int output_stride = output_height * output_width;
+
+    const T* input_data = input.data<T>();
+    T* output_data = context.template Alloc<T>(output);
+
+    int hstart = 0, hend = 1;
+    int wstart = 0, wend = 1;
+    for (int i = 0; i < batch_size; i++) {
+      for (int c = 0; c < output_channels; ++c) {
+        for (int ph = 0; ph < output_height; ++ph) {
+          
+          for (int pw = 0; pw < output_width; ++pw) {
+            
+              hstart = ph * stride_height - padding_height;
+              wstart = pw * stride_width - padding_width;
+              
+              hend = std::min(hstart + dilation_height * (ksize_height - 1) + 1, input_height);
+              wend = std::min(wstart + dilation_width * (ksize_width - 1) + 1, input_width);
+
+              wstart = std::max(wstart, 0);
+              hstart = std::max(hstart, 0);
+
+            T ele = pool_process.initial();
+            for (int h = hstart; h < hend; h+=dilation_height) {
+              for (int w = wstart; w < wend; w+=dilation_width) {
+                pool_process.compute(input_data[h * input_width + w], &ele);
+              }
+            }
+            output_data[ph * output_width + pw] = ele;
+          }
+        }
+        input_data += input_stride;
+        output_data += output_stride;
+      }
+    }
+  }
+
+  void operator()(const CPUContext& context,
+                  const DenseTensor& input,
+                  const std::vector<int>& ksize,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  const std::string data_format,
+                  bool exclusive,
+                  bool adaptive,
+                  DenseTensor* output) {
+
+                  }
+};
+
 /*
  * Tensors are in NCDHW or NDHWC format.
  * Ksize, strides, paddings are three elements. These three elements represent
@@ -1572,6 +1722,7 @@ class MaxPool2dWithIndexFunctor<CPUContext, T1, T2> {
                   const std::vector<int>& ksize,
                   const std::vector<int>& strides,
                   const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
                   bool adaptive,
                   DenseTensor* output,
                   DenseTensor* mask) {
@@ -1587,6 +1738,8 @@ class MaxPool2dWithIndexFunctor<CPUContext, T1, T2> {
     const int stride_width = strides[1];
     const int padding_height = paddings[0];
     const int padding_width = paddings[1];
+    const int dilation_height = dilations[0];
+    const int dilation_width = dilations[1];
     const int input_stride = input_height * input_width;
     const int output_stride = output_height * output_width;
 
@@ -1604,7 +1757,7 @@ class MaxPool2dWithIndexFunctor<CPUContext, T1, T2> {
             hend = AdaptEndIndex(ph, input_height, output_height);
           } else {
             hstart = ph * stride_height - padding_height;
-            hend = std::min(hstart + ksize_height, input_height);
+            hend = std::min(hstart + dilation_height * (ksize_height - 1) + 1, input_height);
             hstart = std::max(hstart, 0);
           }
           for (int pw = 0; pw < output_width; ++pw) {
@@ -1613,14 +1766,14 @@ class MaxPool2dWithIndexFunctor<CPUContext, T1, T2> {
               wend = AdaptEndIndex(pw, input_width, output_width);
             } else {
               wstart = pw * stride_width - padding_width;
-              wend = std::min(wstart + ksize_width, input_width);
+              wend = std::min(wstart + dilation_width * (ksize_width - 1) + 1, input_width);
               wstart = std::max(wstart, 0);
             }
-
+            
             T1 ele = static_cast<T1>(-FLT_MAX);
             int index = -1;
-            for (int h = hstart; h < hend; ++h) {
-              for (int w = wstart; w < wend; ++w) {
+            for (int h = hstart; h < hend; h+=dilation_height) {
+              for (int w = wstart; w < wend; w+=dilation_width) {
                 if (ele < input_data[h * input_width + w]) {
                   ele = input_data[h * input_width + w];
                   index = h * input_width + w;
@@ -1654,6 +1807,7 @@ class MaxPool2dWithIndexGradFunctor<CPUContext, T1, T2> {
                   const std::vector<int>& ksize UNUSED,
                   const std::vector<int>& strides UNUSED,
                   const std::vector<int>& paddings UNUSED,
+                  const std::vector<int>& dilations UNUSED,
                   bool adaptive UNUSED,
                   DenseTensor* input_grad) {
     const int batch_size = static_cast<int>(input_grad->dims()[0]);
@@ -1705,6 +1859,7 @@ class MaxPool3dWithIndexFunctor<CPUContext, T1, T2> {
                   const std::vector<int>& ksize,
                   const std::vector<int>& strides,
                   const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
                   bool adaptive,
                   DenseTensor* output,
                   DenseTensor* mask) {
@@ -1725,6 +1880,9 @@ class MaxPool3dWithIndexFunctor<CPUContext, T1, T2> {
     const int padding_depth = paddings[0];
     const int padding_height = paddings[1];
     const int padding_width = paddings[2];
+    const int dilation_depth = dilations[0];
+    const int dilation_height = dilations[1];
+    const int dilation_width = dilations[2];
     const int input_stride = input_depth * input_height * input_width;
     const int output_stride = output_depth * output_height * output_width;
 
@@ -1743,7 +1901,7 @@ class MaxPool3dWithIndexFunctor<CPUContext, T1, T2> {
             dend = AdaptEndIndex(pd, input_depth, output_depth);
           } else {
             dstart = pd * stride_depth - padding_depth;
-            dend = std::min(dstart + ksize_depth, input_depth);
+            dend = std::min(dstart + dilation_depth * (ksize_depth - 1) + 1, input_depth);
             dstart = std::max(dstart, 0);
           }
           for (int ph = 0; ph < output_height; ++ph) {
@@ -1752,7 +1910,7 @@ class MaxPool3dWithIndexFunctor<CPUContext, T1, T2> {
               hend = AdaptEndIndex(ph, input_height, output_height);
             } else {
               hstart = ph * stride_height - padding_height;
-              hend = std::min(hstart + ksize_height, input_height);
+              hend = std::min(hstart + dilation_height * (ksize_height - 1) + 1, input_height);
               hstart = std::max(hstart, 0);
             }
             for (int pw = 0; pw < output_width; ++pw) {
@@ -1761,16 +1919,16 @@ class MaxPool3dWithIndexFunctor<CPUContext, T1, T2> {
                 wend = AdaptEndIndex(pw, input_width, output_width);
               } else {
                 wstart = pw * stride_width - padding_width;
-                wend = std::min(wstart + ksize_width, input_width);
+                wend = std::min(wstart + dilation_width * (ksize_width - 1) + 1, input_width);
                 wstart = std::max(wstart, 0);
               }
 
               int output_idx = (pd * output_height + ph) * output_width + pw;
               T1 ele = static_cast<T1>(-FLT_MAX);
               int index = -1;
-              for (int d = dstart; d < dend; ++d) {
-                for (int h = hstart; h < hend; ++h) {
-                  for (int w = wstart; w < wend; ++w) {
+              for (int d = dstart; d < dend; d+=dilation_depth) {
+                for (int h = hstart; h < hend; h+=dilation_height) {
+                  for (int w = wstart; w < wend; w+=dilation_width) {
                     int input_idx = (d * input_height + h) * input_width + w;
                     if (ele < input_data[input_idx]) {
                       index = input_idx;
@@ -1807,6 +1965,7 @@ class MaxPool3dWithIndexGradFunctor<CPUContext, T1, T2> {
                   const std::vector<int>& ksize UNUSED,
                   const std::vector<int>& strides UNUSED,
                   const std::vector<int>& paddings UNUSED,
+                  const std::vector<int>& dilations,
                   bool adaptive UNUSED,
                   DenseTensor* input_grad) {
     const int batch_size = static_cast<int>(input_grad->dims()[0]);

@@ -2926,8 +2926,17 @@
   backward : max_grad
   interfaces : paddle::dialect::InferSymbolicShapeInterface
 
+# - op : maxpool2d
+#   args : (Tensor x, int[] kernel_size, int[] strides= {1, 1}, int[] paddings = {0, 0}, int[] dilations = {1, 1}, bool global_pooling = false, bool adaptive = false)
+#   output : Tensor(out)
+#   infer_meta :
+#     func : MaxPool2dInferMeta
+#   kernel :
+#     func : maxpool2d
+# #   backward : maxpool2d_grad
+
 - op : max_pool2d_with_index
-  args : (Tensor x, int[] kernel_size, int[] strides= {1, 1}, int[] paddings = {0, 0}, bool global_pooling = false, bool adaptive = false)
+  args : (Tensor x, int[] kernel_size, int[] strides= {1, 1}, int[] paddings = {0, 0}, int[] dilations = {1, 1}, bool global_pooling = false, bool adaptive = false)
   output : Tensor(out), Tensor(mask)
   infer_meta :
     func : MaxPoolWithIndexInferMeta
@@ -2936,7 +2945,7 @@
   backward : max_pool2d_with_index_grad
 
 - op : max_pool3d_with_index
-  args : (Tensor x, int[] kernel_size, int[] strides = {1, 1, 1}, int[] paddings = {0, 0, 0}, bool global_pooling = false, bool adaptive = false)
+  args : (Tensor x, int[] kernel_size, int[] strides = {1, 1, 1}, int[] paddings = {0, 0, 0}, int[] dilations = {1, 1, 1}, bool global_pooling = false, bool adaptive = false)
   output : Tensor(out), Tensor(mask)
   infer_meta :
     func : MaxPoolWithIndexInferMeta
@@ -3347,6 +3356,29 @@
     func : polygamma
   inplace: (x -> out)
   backward : polygamma_grad
+
+- op : maxpool2d
+  args : (Tensor x, IntArray kernel_size, int[] strides, int[] paddings, int[] dilations, bool ceil_mode, bool exclusive, str data_format, str pooling_type, bool global_pooling, bool adaptive, str padding_algorithm)
+  output : Tensor(out)
+  infer_meta :
+    func : MaxPool2DInferMeta
+    param : [x, kernel_size, strides, paddings, dilations, ceil_mode, exclusive, data_format, pooling_type, global_pooling, adaptive, padding_algorithm]
+  kernel :
+    func : maxpool2d
+    param : [x, kernel_size, strides, paddings, dilations, ceil_mode, exclusive, data_format, pooling_type, global_pooling, adaptive, padding_algorithm]
+  backward : maxpool2d_grad
+
+
+- op : maxpool3d
+  args : (Tensor x, IntArray kernel_size, int[] strides, int[] paddings, int[] dilations, bool ceil_mode, bool exclusive, str data_format, str pooling_type, bool global_pooling, bool adaptive, str padding_algorithm)
+  output : Tensor(out)
+  infer_meta :
+    func : MaxPool3DInferMeta
+    param : [x, kernel_size, strides, paddings, dilations, ceil_mode, exclusive, data_format, pooling_type, global_pooling, adaptive, padding_algorithm]
+  kernel :
+    func : maxpool3d
+    param : [x, kernel_size, strides, paddings, dilations, ceil_mode, exclusive, data_format, pooling_type, global_pooling, adaptive, padding_algorithm]
+  backward : maxpool3d_grad
 
 - op : pool2d
   args : (Tensor x, IntArray kernel_size, int[] strides, int[] paddings, bool ceil_mode, bool exclusive, str data_format, str pooling_type, bool global_pooling, bool adaptive, str padding_algorithm)

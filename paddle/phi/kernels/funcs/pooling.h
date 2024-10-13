@@ -263,6 +263,20 @@ class Pool2dGradFunctor {
                   PoolProcess pool_compute);
 };
 
+template <typename Context, typename T>
+class MaxPool2dFunctor {
+ public:
+  void operator()(const Context& context,
+                  const DenseTensor& input,
+                  const std::vector<int>& ksize,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  bool exclusive,
+                  bool adaptive,
+                  DenseTensor* output);
+};
+
 template <typename Context, class T>
 class MaxPool2dGradFunctor {
  public:
@@ -358,6 +372,30 @@ class Pool3dGradFunctor {
                   PoolProcess pool_compute);
 };
 
+template <typename Context, typename T>
+class MaxPool3dFunctor {
+ public:
+  void operator()(const Context& context,
+                  const DenseTensor& input,
+                  const std::vector<int>& ksize,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  bool exclusive,
+                  bool adaptive,
+                  DenseTensor* output);
+  void operator()(const Context& context,
+                  const DenseTensor& input,
+                  const std::vector<int>& ksize,
+                  const std::vector<int>& strides,
+                  const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
+                  const std::string data_format,
+                  bool exclusive,
+                  bool adaptive,
+                  DenseTensor* output);
+};
+
 template <typename Context, class T>
 class MaxPool3dGradFunctor {
  public:
@@ -396,6 +434,7 @@ class MaxPool2dWithIndexFunctor {
                   const std::vector<int>& ksize,
                   const std::vector<int>& strides,
                   const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
                   bool adaptive,
                   DenseTensor* output,
                   DenseTensor* mask);
@@ -410,6 +449,7 @@ class MaxPool2dWithIndexGradFunctor {
                   const std::vector<int>& ksize,
                   const std::vector<int>& strides,
                   const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
                   bool adaptive,
                   DenseTensor* input_grad);
 };
@@ -422,6 +462,7 @@ class MaxPool3dWithIndexFunctor {
                   const std::vector<int>& ksize,
                   const std::vector<int>& strides,
                   const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
                   bool adaptive,
                   DenseTensor* output,
                   DenseTensor* mask);
@@ -436,6 +477,7 @@ class MaxPool3dWithIndexGradFunctor {
                   const std::vector<int>& ksize,
                   const std::vector<int>& strides,
                   const std::vector<int>& paddings,
+                  const std::vector<int>& dilations,
                   bool adaptive,
                   DenseTensor* input_grad);
 };
@@ -541,13 +583,14 @@ inline int PoolOutputSize(int input_size,
 inline int MaxPoolOutputSize(int input_size,
                              int filter_size,
                              int padding,
-                             int stride) {
+                             int stride,
+                             int dilation) {
   PADDLE_ENFORCE_NE(
       stride,
       0,
       phi::errors::InvalidArgument(
           "The stride of MaxPool shall not be 0, but received %d.", stride));
-  int output_size = (input_size - filter_size + 2 * padding) / stride + 1;
+  int output_size = (input_size - dilation * (filter_size - 1) - 1 + 2 * padding) / stride + 1;
   return output_size;
 }
 

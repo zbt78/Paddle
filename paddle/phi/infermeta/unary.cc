@@ -2516,6 +2516,7 @@ void MaxPoolWithIndexInferMeta(const MetaTensor& x,
                                const std::vector<int>& kernel_size,
                                const std::vector<int>& strides,
                                const std::vector<int>& paddings,
+                               const std::vector<int>& dilations,
                                bool global_pooling,
                                bool adaptive,
                                MetaTensor* out,
@@ -2562,6 +2563,13 @@ void MaxPoolWithIndexInferMeta(const MetaTensor& x,
           "Paddings size %d and pooling size %d should be the same.",
           paddings_.size(),
           kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      dilations.size(),
+      errors::InvalidArgument(
+          "Dilations size %d and pooling size %d should be the same.",
+          dilations.size(),
+          kernel_size_.size()));
 
   std::vector<int64_t> output_shape({x_dims[0], x_dims[1]});
   if (adaptive) {
@@ -2576,7 +2584,8 @@ void MaxPoolWithIndexInferMeta(const MetaTensor& x,
             funcs::MaxPoolOutputSize(static_cast<int>(x_dims[i + 2]),
                                      kernel_size_[i],
                                      paddings_[i],
-                                     strides[i]));
+                                     strides[i],
+                                     dilations[i]));
       }
     }
   }
@@ -3329,6 +3338,164 @@ void PNormInferMeta(const MetaTensor& x,
   }
 
   out->set_dims(common::make_ddim(out_dim_vector));
+  out->set_dtype(x.dtype());
+}
+
+void MaxPool2DInferMeta(const MetaTensor& x,
+                     const IntArray& kernel_size,
+                     const std::vector<int>& strides,
+                     const std::vector<int>& paddings,
+                     const std::vector<int>& dilations,
+                     bool ceil_mode,
+                     bool exclusive,
+                     const std::string& data_format,
+                     const std::string& pooling_type,
+                     bool global_pooling,
+                     bool adaptive,
+                     const std::string& padding_algorithm,
+                     MetaTensor* out,
+                     MetaConfig config) {
+  
+    std::vector<int> kernel_size_(kernel_size.GetData().begin(),
+                                     kernel_size.GetData().end());
+  std::vector<int> paddings_ = paddings;
+
+  auto x_dims = x.dims();
+
+  PADDLE_ENFORCE_EQ(
+      (x_dims.size() == 4 || x_dims.size() == 5),
+      true,
+      errors::InvalidArgument("Pooling intput should be 4-D or "
+                              "5-D tensor but received %dD-Tensor",
+                              x_dims.size()));
+
+
+  PADDLE_ENFORCE_EQ(
+      x_dims.size() - kernel_size_.size(),
+      2U,
+      errors::InvalidArgument(
+          "The input size %d minus the kernel size %d should equal to 2.",
+          x_dims.size(),
+          kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      strides.size(),
+      errors::InvalidArgument(
+          "Strides size %d and pooling size %d should be the same.",
+          strides.size(),
+          kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      paddings_.size(),
+      errors::InvalidArgument(
+          "Paddings size %d and pooling size %d should be the same.",
+          paddings_.size(),
+          kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      dilations.size(),
+      errors::InvalidArgument(
+          "Dilations size %d and pooling size %d should be the same.",
+          dilations.size(),
+          kernel_size_.size()));
+
+  std::vector<int64_t> output_shape({x_dims[0], x_dims[1]});
+  
+    for (int i = 0; i < static_cast<int>(kernel_size_.size()); ++i) {
+      if ((!config.is_runtime) && (x_dims[i + 2] < 0)) {
+        output_shape.push_back(x_dims[i + 2]);
+      } else {
+        output_shape.push_back(
+            funcs::MaxPoolOutputSize(static_cast<int>(x_dims[i + 2]),
+                                     kernel_size_[i],
+                                     paddings_[i],
+                                     strides[i],
+                                     dilations[i]));
+      }
+    }
+  
+
+  out->set_dims(common::make_ddim(output_shape));
+  out->share_lod(x);
+  out->set_dtype(x.dtype());
+}
+
+void MaxPool3DInferMeta(const MetaTensor& x,
+                     const IntArray& kernel_size,
+                     const std::vector<int>& strides,
+                     const std::vector<int>& paddings,
+                     const std::vector<int>& dilations,
+                     bool ceil_mode,
+                     bool exclusive,
+                     const std::string& data_format,
+                     const std::string& pooling_type,
+                     bool global_pooling,
+                     bool adaptive,
+                     const std::string& padding_algorithm,
+                     MetaTensor* out,
+                     MetaConfig config) {
+  
+  std::vector<int> kernel_size_(kernel_size.GetData().begin(),
+                                     kernel_size.GetData().end());
+  std::vector<int> paddings_ = paddings;
+
+  auto x_dims = x.dims();
+
+  PADDLE_ENFORCE_EQ(
+      (x_dims.size() == 4 || x_dims.size() == 5),
+      true,
+      errors::InvalidArgument("Pooling intput should be 4-D or "
+                              "5-D tensor but received %dD-Tensor",
+                              x_dims.size()));
+
+
+  PADDLE_ENFORCE_EQ(
+      x_dims.size() - kernel_size_.size(),
+      2U,
+      errors::InvalidArgument(
+          "The input size %d minus the kernel size %d should equal to 2.",
+          x_dims.size(),
+          kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      strides.size(),
+      errors::InvalidArgument(
+          "Strides size %d and pooling size %d should be the same.",
+          strides.size(),
+          kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      paddings_.size(),
+      errors::InvalidArgument(
+          "Paddings size %d and pooling size %d should be the same.",
+          paddings_.size(),
+          kernel_size_.size()));
+  PADDLE_ENFORCE_EQ(
+      kernel_size_.size(),
+      dilations.size(),
+      errors::InvalidArgument(
+          "Dilations size %d and pooling size %d should be the same.",
+          dilations.size(),
+          kernel_size_.size()));
+
+  std::vector<int64_t> output_shape({x_dims[0], x_dims[1]});
+  
+    for (int i = 0; i < static_cast<int>(kernel_size_.size()); ++i) {
+      if ((!config.is_runtime) && (x_dims[i + 2] < 0)) {
+        output_shape.push_back(x_dims[i + 2]);
+      } else {
+        output_shape.push_back(
+            funcs::MaxPoolOutputSize(static_cast<int>(x_dims[i + 2]),
+                                     kernel_size_[i],
+                                     paddings_[i],
+                                     strides[i],
+                                     dilations[i]));
+      }
+    }
+  
+
+  out->set_dims(common::make_ddim(output_shape));
+  out->share_lod(x);
   out->set_dtype(x.dtype());
 }
 

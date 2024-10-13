@@ -27,6 +27,8 @@ PD_REGISTER_KERNEL(pool2d_double_grad,
                    phi::Pool2dDoubleGradKernel,
                    float,
                    double) {}
+PD_REGISTER_KERNEL(
+    maxpool2d_grad, CPU, ALL_LAYOUT, phi::MaxPool2dGradKernel, float, double) {}
 PD_REGISTER_KERNEL(max_pool2d_with_index_grad,
                    CPU,
                    ALL_LAYOUT,
@@ -38,6 +40,8 @@ PD_REGISTER_KERNEL(max_pool2d_with_index_grad,
 
 PD_REGISTER_KERNEL(
     pool3d_grad, CPU, ALL_LAYOUT, phi::Pool3dGradKernel, float, double) {}
+PD_REGISTER_KERNEL(
+    maxpool3d_grad, CPU, ALL_LAYOUT, phi::MaxPool3dGradKernel, float, double) {}
 PD_REGISTER_KERNEL(max_pool3d_with_index_grad,
                    CPU,
                    ALL_LAYOUT,

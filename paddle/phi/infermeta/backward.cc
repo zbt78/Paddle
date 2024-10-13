@@ -1049,6 +1049,7 @@ void MaxPoolWithIndexGradInferMeta(const MetaTensor& x,
                                    const std::vector<int>& kernel_size,
                                    const std::vector<int>& strides,
                                    const std::vector<int>& paddings,
+                                   const std::vector<int>& dilations,
                                    bool global_pooling,
                                    bool adaptive,
                                    MetaTensor* dx) {
